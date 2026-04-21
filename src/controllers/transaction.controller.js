@@ -4,7 +4,8 @@ const mongoose = require("mongoose");
 const ledgerModel = require("../models/ledger.model");
 
 const createTransaction = async (req, res) => {
-  const { fromAccount, toAccount, amount, idempotencyKey };
+
+  const { fromAccount, toAccount, amount, idempotencyKey } = req.body
 
   if (!fromAccount || !toAccount || !amount || !idempotencyKey) {
     res.status(401).json({
@@ -12,15 +13,15 @@ const createTransaction = async (req, res) => {
     });
   }
 
-  const fromAccount = await accountModel.findOne({
-    _id: fromAccoutn,
+  const fromUserAccount = await accountModel.findOne({
+    _id: fromAccount,
   });
 
-  const toAccount = await accountModel.findOne({
+  const toUserAccount = await accountModel.findOne({
     _id: toAccount,
   });
 
-  if (!fromAccount || !toAccount) {
+  if (!fromUserAccount || !toUserAccount) {
     res.status(400).json({
       message: "Invalid fromAccount or toAccount",
     });
@@ -53,13 +54,13 @@ const createTransaction = async (req, res) => {
     }
   }
 
-  if (fromAccount.status !== "ACTIVE" || toAccount.status !== "ACTIVE") {
+  if (fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE") {
     return res.status(400).json({
       message: "Make sure accoun must be Activated",
     });
   }
 
-  const balance = fromAccount.getBalance();
+  const balance = fromUserAccount.getBalance();
 
   if (balance < amount) {
     return res.status(401).json({
@@ -72,8 +73,8 @@ const createTransaction = async (req, res) => {
 
   const transaction = await transactionModel.create(
     {
-      fromAccout,
-      toAccount,
+      fromAccout: fromUserAccount,
+      toAccount: toUserAccount,
       amount,
       idempotencyKey,
       status: "PENDING",
@@ -107,3 +108,6 @@ const createTransaction = async (req, res) => {
   await session.commitTransaction()
   session.endSession
 };
+
+
+module.exports = {createTransaction}
